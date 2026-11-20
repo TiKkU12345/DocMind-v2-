@@ -1,6 +1,6 @@
 # DocMind v2
 
-RAG document Q&A. FastAPI + FAISS + fastembed (all-MiniLM-L6-v2) + Groq LLaMA-3.3-70B, Streamlit frontend.
+RAG document Q&A. FastAPI + FAISS + fastembed (all-MiniLM-L6-v2) + Groq (default model `openai/gpt-oss-120b`, override with `GROQ_MODEL`), Streamlit frontend.
 
 What changed from v1:
 
@@ -10,11 +10,13 @@ What changed from v1:
 - Per-session isolation. Each browser session has its own index, identified by `sid` in the page URL.
 - DOCX support. Re-uploading a file with the same name replaces its old chunks instead of duplicating them.
 - Chunk metadata is JSON, not pickle. Raw uploads are never written to disk.
+- "Try a sample document" button (fictional agreement in `samples/`) so visitors can test without uploading anything.
 - Sessions untouched for 7 days are deleted on server startup.
 
 ## Layout
 
     app/            FastAPI backend
+    samples/        demo document loaded by the sample button
     frontend/       Streamlit app (own requirements.txt)
     scripts/        build-time model download
     tests/          pytest suite

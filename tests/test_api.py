@@ -106,3 +106,24 @@ def test_query_validation(client):
     upload(client, "a.txt", b"some content to index")
     assert client.post("/query", json={"query": ""}, headers=hdr()).status_code == 422
     assert client.post("/query", json={"query": "x", "top_k": 99}, headers=hdr()).status_code == 422
+
+
+def test_sample_loads_and_is_queryable(client):
+    resp = client.post("/sample", headers=hdr())
+    assert resp.status_code == 200
+    assert resp.json()["filename"] == "sample_service_agreement.txt"
+    assert resp.json()["chunks_created"] >= 4
+
+    q = client.post("/query", json={"query": "payment due"}, headers=hdr())
+    assert q.status_code == 200
+    assert q.json()["sources"][0]["source"] == "sample_service_agreement.txt"
+
+
+def test_sample_twice_does_not_duplicate(client):
+    first = client.post("/sample", headers=hdr()).json()["total_chunks"]
+    second = client.post("/sample", headers=hdr()).json()["total_chunks"]
+    assert first == second
+
+
+def test_sample_requires_session(client):
+    assert client.post("/sample").status_code == 400

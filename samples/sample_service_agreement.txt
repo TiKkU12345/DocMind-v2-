@@ -1,0 +1,41 @@
+LUMORA ANALYTICS SOFTWARE SUBSCRIPTION AGREEMENT
+
+Note: This is a fictional agreement written for demonstration purposes only. Lumora Analytics and all terms below are invented.
+
+This Software Subscription Agreement is entered into between Lumora Analytics Private Limited, a company registered in Bengaluru, India (the Provider), and the customer named in the Order Form (the Customer).
+
+1. Subscription and Scope
+The Provider grants the Customer a non-exclusive, non-transferable right to access the Lumora Insights web platform during the Term for the Customer's internal business purposes. The subscription covers up to 25 named users. Additional users may be added in blocks of 5 at the then-current per-user rate. The Customer may not resell the platform, reverse engineer it, or use it to build a competing product.
+
+2. Fees and Payment
+The annual subscription fee is USD 18,000 for the first twelve months. The Provider will invoice the Customer annually in advance. Payment is due within 30 days of the invoice date. Late payments accrue interest at 1.5 percent per month on the overdue amount. If an invoice remains unpaid for 45 days after the due date, the Provider may suspend access until the balance is paid. All fees are exclusive of taxes, and the Customer is responsible for applicable GST and withholding taxes. Fees are non-cancellable during the Term.
+
+3. Term and Renewal
+This Agreement starts on the Effective Date and continues for an initial term of twelve months. It renews automatically for successive twelve month periods unless either party gives written notice of non-renewal at least 60 days before the end of the current term. The Provider may increase fees at renewal by up to 7 percent, with notice given at least 90 days in advance.
+
+4. Service Levels
+The Provider will use commercially reasonable efforts to keep the platform available 99.5 percent of the time each calendar month, excluding scheduled maintenance announced at least 48 hours in advance. If monthly availability falls below 99.5 percent, the Customer receives a service credit of 5 percent of that month's pro-rated fee for each full percentage point of shortfall, up to a maximum of 30 percent. Service credits are the Customer's sole remedy for availability failures. Credits must be requested within 30 days after the end of the affected month.
+
+5. Customer Data and Security
+The Customer owns all data it uploads to the platform. The Provider will process Customer data only to deliver the services and will maintain encryption of data in transit and at rest. The Provider will notify the Customer of a confirmed security breach affecting Customer data within 72 hours of becoming aware of it. Upon termination, the Provider will make Customer data available for export for 30 days and will delete it within 90 days after termination.
+
+6. Confidentiality
+Each party will keep the other party's confidential information secret and use it only to perform this Agreement. These obligations continue for five years after termination. Confidential information does not include information that is public through no fault of the receiving party, was already known to it, or is independently developed.
+
+7. Warranties and Disclaimer
+The Provider warrants that the services will perform materially in accordance with the documentation. Except as stated in this Agreement, the platform is provided as is, and the Provider disclaims all other warranties, including fitness for a particular purpose.
+
+8. Limitation of Liability
+Neither party is liable for indirect, incidental, or consequential damages, including lost profits. Each party's total liability under this Agreement is limited to the fees paid by the Customer in the twelve months before the event giving rise to the claim. This limit does not apply to breaches of confidentiality, indemnification obligations, or the Customer's obligation to pay fees.
+
+9. Indemnification
+The Provider will defend the Customer against third party claims alleging that the platform infringes a patent, copyright, or trademark, and will pay damages finally awarded. The Customer will defend the Provider against claims arising from Customer data or the Customer's misuse of the platform.
+
+10. Termination
+Either party may terminate this Agreement for material breach if the breach is not cured within 30 days after written notice. Either party may terminate immediately if the other becomes insolvent. Upon termination for any reason, the Customer's access ends and unpaid fees for the remainder of the then-current term become immediately due, except where the Customer terminates for the Provider's uncured breach.
+
+11. Governing Law and Disputes
+This Agreement is governed by the laws of India. Disputes will be referred to arbitration in Bengaluru under the Arbitration and Conciliation Act, 1996, before a sole arbitrator. The courts in Bengaluru have exclusive jurisdiction over interim relief.
+
+12. Notices and Entire Agreement
+Notices must be in writing and sent by email with confirmation or by courier to the addresses in the Order Form. This Agreement and the Order Form are the entire agreement between the parties and may be amended only in writing signed by both parties.

@@ -62,6 +62,29 @@ def refresh_documents() -> None:
         st.session_state["documents"] = []
 
 
+SAMPLE_NAME = "sample_service_agreement.txt"
+SAMPLE_QUESTIONS = [
+    "When is payment due and what happens if it is late?",
+    "How can this agreement be terminated?",
+    "What is the liability cap?",
+    "What is the refund policy?",
+]
+
+
+def load_sample() -> None:
+    with st.spinner("Indexing the sample agreement..."):
+        try:
+            resp = call("POST", "/sample")
+        except requests.RequestException as exc:
+            st.error(f"Request failed: {exc}")
+            return
+    if resp.ok:
+        refresh_documents()
+        st.rerun()
+    else:
+        st.error(error_text(resp))
+
+
 st.session_state.setdefault("messages", [])
 st.session_state.setdefault("uploader_key", 0)
 
@@ -119,6 +142,20 @@ with st.sidebar:
 
     st.caption("Bookmark this page. The URL is your key to these documents. Data is deleted after 7 days of inactivity.")
 
+has_sample = any(d["filename"] == SAMPLE_NAME for d in st.session_state["documents"])
+
+if not st.session_state["documents"]:
+    st.info("No documents yet. Upload your own in the sidebar, or try a ready-made one.")
+    if st.button("Try a sample document", type="primary"):
+        load_sample()
+elif has_sample and not st.session_state["messages"]:
+    st.caption("Sample agreement loaded. Try a question (the last one is deliberately not covered by the document):")
+    cols = st.columns(2)
+    for i, q in enumerate(SAMPLE_QUESTIONS):
+        if cols[i % 2].button(q, key=f"sq_{i}"):
+            st.session_state["pending_question"] = q
+            st.rerun()
+
 for message in st.session_state["messages"]:
     with st.chat_message(message["role"]):
         st.write(message["content"])
@@ -127,6 +164,8 @@ for message in st.session_state["messages"]:
                 st.write(src["chunk"])
 
 question = st.chat_input("Ask something about your documents")
+if not question and st.session_state.get("pending_question"):
+    question = st.session_state.pop("pending_question")
 if question:
     st.session_state["messages"].append({"role": "user", "content": question})
     with st.chat_message("user"):
