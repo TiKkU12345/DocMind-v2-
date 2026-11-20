@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: docmind-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python scripts/download_model.py
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: EMBED_CACHE_DIR
+        value: models_cache
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: docmind-indexes
