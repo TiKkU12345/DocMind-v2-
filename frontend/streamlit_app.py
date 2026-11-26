@@ -140,7 +140,47 @@ with st.sidebar:
         refresh_documents()
         st.rerun()
 
+    verify = st.checkbox(
+        "Verify answers against sources",
+        value=True,
+        help="Runs a second model call that checks every claim in the answer against the retrieved chunks. Slower and uses more API quota.",
+    )
+
     st.caption("Bookmark this page. The URL is your key to these documents. Data is deleted after 7 days of inactivity.")
+
+def render_answer(answer: str, sources: list, verification: dict | None, abstained: bool) -> None:
+    st.write(answer)
+    if abstained:
+        return
+
+    if verification and verification.get("status") == "ok":
+        label = (
+            f"Verification: {verification['supported']} of {verification['total']} claims "
+            f"supported by the sources ({int(round(verification['faithfulness'] * 100))}%)"
+        )
+        if verification["supported"] == verification["total"]:
+            st.success(label)
+        else:
+            st.warning(label)
+        for c in verification["claims"]:
+            if c["supported"]:
+                refs = ", ".join(str(i) for i in c["chunks"])
+                st.markdown(f"✅ {c['claim']}  _(source {refs})_")
+            else:
+                st.markdown(f"⚠️ {c['claim']}  _(not found in the sources)_")
+    elif verification and verification.get("status") == "failed":
+        st.caption("Verification was unavailable for this answer.")
+
+    for i, src in enumerate(sources, start=1):
+        with st.expander(f"Source {i}: {src['source']}  (score {src['score']})"):
+            st.write(src["chunk"])
+
+
+question = st.chat_input("Ask something about your documents")
+if not question and st.session_state.get("pending_question"):
+    question = st.session_state.pop("pending_question")
+if question:
+    st.session_state["messages"].append({"role": "user", "content": question})
 
 has_sample = any(d["filename"] == SAMPLE_NAME for d in st.session_state["documents"])
 
@@ -158,37 +198,41 @@ elif has_sample and not st.session_state["messages"]:
 
 for message in st.session_state["messages"]:
     with st.chat_message(message["role"]):
-        st.write(message["content"])
-        for src in message.get("sources", []):
-            with st.expander(f"{src['source']}  (score {src['score']})"):
-                st.write(src["chunk"])
+        if message["role"] == "user":
+            st.write(message["content"])
+        else:
+            render_answer(
+                message["content"],
+                message.get("sources", []),
+                message.get("verification"),
+                message.get("abstained", False),
+            )
 
-question = st.chat_input("Ask something about your documents")
-if not question and st.session_state.get("pending_question"):
-    question = st.session_state.pop("pending_question")
 if question:
-    st.session_state["messages"].append({"role": "user", "content": question})
-    with st.chat_message("user"):
-        st.write(question)
-
     with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
+        with st.spinner("Thinking and checking the answer..." if verify else "Thinking..."):
             try:
-                resp = call("POST", "/query", json={"query": question, "top_k": 3})
+                resp = call(
+                    "POST", "/query", json={"query": question, "top_k": 3, "verify": verify}
+                )
             except requests.RequestException as exc:
                 resp = None
-                answer, sources = f"Request failed: {exc}", []
+                result = {"answer": f"Request failed: {exc}", "sources": []}
         if resp is not None:
-            if resp.ok:
-                data = resp.json()
-                answer, sources = data["answer"], data["sources"]
-            else:
-                answer, sources = error_text(resp), []
-        st.write(answer)
-        for src in sources:
-            with st.expander(f"{src['source']}  (score {src['score']})"):
-                st.write(src["chunk"])
+            result = resp.json() if resp.ok else {"answer": error_text(resp), "sources": []}
+        render_answer(
+            result["answer"],
+            result.get("sources", []),
+            result.get("verification"),
+            result.get("abstained", False),
+        )
 
     st.session_state["messages"].append(
-        {"role": "assistant", "content": answer, "sources": sources}
+        {
+            "role": "assistant",
+            "content": result["answer"],
+            "sources": result.get("sources", []),
+            "verification": result.get("verification"),
+            "abstained": result.get("abstained", False),
+        }
     )

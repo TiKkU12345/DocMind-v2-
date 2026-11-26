@@ -10,6 +10,8 @@ What changed from v1:
 - Per-session isolation. Each browser session has its own index, identified by `sid` in the page URL.
 - DOCX support. Re-uploading a file with the same name replaces its old chunks instead of duplicating them.
 - Chunk metadata is JSON, not pickle. Raw uploads are never written to disk.
+- Answer verifier: `POST /query` with `"verify": true` runs a second model call that splits the answer into claims and checks each against the retrieved chunks. Returns per-claim support, cited chunk numbers and a faithfulness score. Off by default in the API, on by default in the UI (sidebar toggle). If the verifier fails, the answer is still returned.
+- When the model abstains ("I don't have enough information"), the response has `abstained: true` and the UI hides the sources.
 - "Try a sample document" button (fictional agreement in `samples/`) so visitors can test without uploading anything.
 - Sessions untouched for 7 days are deleted on server startup.
 
@@ -51,6 +53,11 @@ What changed from v1:
     python -m pytest
     uvicorn app.main:app --reload
     API_BASE=http://localhost:8000 streamlit run frontend/streamlit_app.py
+
+## Verifier caveats
+
+- It is an LLM judging an LLM, so it can be wrong in both directions. It is a signal, not ground truth. Spot-check it by hand before quoting any number from it.
+- It doubles the model calls per question (more latency, more Groq quota).
 
 ## Known limits
 

@@ -127,3 +127,56 @@ def test_sample_twice_does_not_duplicate(client):
 
 def test_sample_requires_session(client):
     assert client.post("/sample").status_code == 400
+
+
+def _verifier_payload(supported=True):
+    import json
+
+    return json.dumps(
+        {"claims": [{"claim": "c", "supported": supported, "chunks": [1] if supported else []}]}
+    )
+
+
+def test_query_without_verify_has_no_verification(client):
+    upload(client, "a.txt", b"Payment is due within 30 days of invoice.")
+    body = client.post("/query", json={"query": "payment"}, headers=hdr()).json()
+    assert body["verification"] is None
+    assert body["abstained"] is False
+
+
+def test_query_with_verify_returns_claims(client, monkeypatch):
+    from app.core import generator
+
+    upload(client, "a.txt", b"Payment is due within 30 days of invoice.")
+    monkeypatch.setattr(generator, "complete", lambda *a, **k: _verifier_payload(True))
+    body = client.post("/query", json={"query": "payment", "verify": True}, headers=hdr()).json()
+    assert body["verification"]["status"] == "ok"
+    assert body["verification"]["faithfulness"] == 1.0
+
+
+def test_verifier_failure_does_not_break_query(client, monkeypatch):
+    from app.core import generator
+
+    upload(client, "a.txt", b"Payment is due within 30 days of invoice.")
+    monkeypatch.setattr(generator, "complete", lambda *a, **k: "garbage")
+    resp = client.post("/query", json={"query": "payment", "verify": True}, headers=hdr())
+    assert resp.status_code == 200
+    assert resp.json()["answer"].startswith("ANSWER")
+    assert resp.json()["verification"]["status"] == "failed"
+
+
+def test_abstention_skips_verification(client, monkeypatch):
+    from app.api import query as query_api
+
+    upload(client, "a.txt", b"Payment is due within 30 days of invoice.")
+    monkeypatch.setattr(
+        query_api.generator,
+        "generate_answer",
+        lambda q, c: "I don't have enough information to answer this.",
+    )
+    called = []
+    monkeypatch.setattr(query_api.verifier, "verify_answer", lambda *a: called.append(1))
+    body = client.post("/query", json={"query": "refund", "verify": True}, headers=hdr()).json()
+    assert body["abstained"] is True
+    assert body["verification"] is None
+    assert called == []

@@ -4,6 +4,8 @@ from app.config import settings
 
 _client = None
 
+ABSTAIN_PHRASE = "don't have enough information"
+
 
 def _get_client() -> Groq:
     global _client
@@ -12,6 +14,28 @@ def _get_client() -> Groq:
     if _client is None:
         _client = Groq(api_key=settings.groq_api_key)
     return _client
+
+
+def complete(prompt: str, max_tokens: int = 2000, temperature: float = 0.1) -> str:
+    extra = {}
+    if settings.groq_model.startswith("openai/gpt-oss"):
+        extra["extra_body"] = {"reasoning_effort": "low"}
+
+    response = _get_client().chat.completions.create(
+        model=settings.groq_model,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens,
+        temperature=temperature,
+        **extra,
+    )
+    answer = (response.choices[0].message.content or "").strip()
+    if not answer:
+        raise RuntimeError("The model returned an empty answer.")
+    return answer
+
+
+def is_abstention(answer: str) -> bool:
+    return ABSTAIN_PHRASE in answer.lower().replace("\u2019", "'")
 
 
 def generate_answer(query: str, chunks: list[dict]) -> str:
@@ -27,18 +51,4 @@ Question: {query}
 
 Answer:"""
 
-    extra = {}
-    if settings.groq_model.startswith("openai/gpt-oss"):
-        extra["extra_body"] = {"reasoning_effort": "low"}
-
-    response = _get_client().chat.completions.create(
-        model=settings.groq_model,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=2000,
-        temperature=0.1,
-        **extra,
-    )
-    answer = (response.choices[0].message.content or "").strip()
-    if not answer:
-        raise RuntimeError("The model returned an empty answer.")
-    return answer
+    return complete(prompt)
