@@ -13,14 +13,15 @@ def _build_prompt(answer: str, chunks: list[dict]) -> str:
     context = "\n\n".join(
         f"[{i}] ({c['source']})\n{c['chunk']}" for i, c in enumerate(chunks, start=1)
     )
-    return f"""You are a strict fact-checker. Break the ANSWER into short, atomic factual claims.
-For each claim, decide whether it is directly supported by the numbered CONTEXT passages.
-A claim is supported only if a passage states it or it follows directly from a passage.
-Do not use outside knowledge. Ignore filler such as greetings.
+    return f"""You are a strict fact-checker. Break the ANSWER into short, atomic claims.
+Ignore filler such as greetings. Give every claim a "kind":
+
+1. kind "fact": a positive statement. It is supported only if a numbered CONTEXT passage states it or it follows directly from a passage. Do not use outside knowledge. List the supporting passage numbers in "chunks". If no passage supports it, set "supported" to false and "chunks" to [].
+
+2. kind "absence": a statement that something is NOT mentioned, NOT covered or NOT stated (for example "the agreement does not mention a discount"). Set "supported" to true if none of the CONTEXT passages mention that thing. If a passage does mention it, set "supported" to false and list that passage in "chunks".
 
 Return ONLY a JSON object, no other text, in exactly this shape:
-{{"claims": [{{"claim": "text of the claim", "supported": true, "chunks": [1]}}]}}
-If a claim is not supported, set "supported" to false and "chunks" to [].
+{{"claims": [{{"claim": "text of the claim", "kind": "fact", "supported": true, "chunks": [1]}}]}}
 
 CONTEXT:
 {context}
@@ -42,20 +43,35 @@ def _extract_json(raw: str) -> dict:
     return data
 
 
+def _valid_ids(raw, num_chunks: int) -> list[int]:
+    ids = []
+    if isinstance(raw, list):
+        for value in raw:
+            if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= num_chunks and value not in ids:
+                ids.append(value)
+    return ids
+
+
 def _normalise(data: dict, num_chunks: int) -> list[dict]:
     claims = []
     for item in data["claims"][:MAX_CLAIMS]:
         if not isinstance(item, dict) or not str(item.get("claim", "")).strip():
             continue
+        kind = "absence" if item.get("kind") == "absence" else "fact"
         supported = item.get("supported") is True
-        ids = []
-        if supported:
-            for raw_id in item.get("chunks", []) if isinstance(item.get("chunks"), list) else []:
-                if isinstance(raw_id, int) and 1 <= raw_id <= num_chunks and raw_id not in ids:
-                    ids.append(raw_id)
-            if not ids:
+        ids = _valid_ids(item.get("chunks"), num_chunks)
+
+        if kind == "fact":
+            if supported and not ids:
                 supported = False
-        claims.append({"claim": str(item["claim"]).strip(), "supported": supported, "chunks": ids})
+            if not supported:
+                ids = []
+        elif supported:
+            ids = []
+
+        claims.append(
+            {"claim": str(item["claim"]).strip(), "kind": kind, "supported": supported, "chunks": ids}
+        )
     return claims
 
 
@@ -65,11 +81,16 @@ def verify_answer(answer: str, chunks: list[dict]) -> dict:
     if not claims:
         raise VerifierError("Verifier found no claims to check.")
 
-    supported = sum(1 for c in claims if c["supported"])
+    facts = [c for c in claims if c["kind"] == "fact"]
+    absences = [c for c in claims if c["kind"] == "absence"]
+    supported = sum(1 for c in facts if c["supported"])
+
     return {
         "status": "ok",
         "claims": claims,
         "supported": supported,
-        "total": len(claims),
-        "faithfulness": round(supported / len(claims), 2),
+        "total": len(facts),
+        "faithfulness": round(supported / len(facts), 2) if facts else None,
+        "absence_claims": len(absences),
+        "absence_contradicted": sum(1 for c in absences if not c["supported"]),
     }

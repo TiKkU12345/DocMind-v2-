@@ -154,20 +154,34 @@ def render_answer(answer: str, sources: list, verification: dict | None, abstain
         return
 
     if verification and verification.get("status") == "ok":
-        label = (
-            f"Verification: {verification['supported']} of {verification['total']} claims "
-            f"supported by the sources ({int(round(verification['faithfulness'] * 100))}%)"
-        )
-        if verification["supported"] == verification["total"]:
-            st.success(label)
+        claims = verification["claims"]
+        contradicted = verification.get("absence_contradicted", 0)
+        if verification["total"] == 0:
+            st.info("No positive claims to verify in this answer.")
         else:
-            st.warning(label)
-        for c in verification["claims"]:
-            if c["supported"]:
+            label = (
+                f"Verification: {verification['supported']} of {verification['total']} claims "
+                f"supported by the sources ({int(round(verification['faithfulness'] * 100))}%)"
+            )
+            if verification["supported"] == verification["total"] and contradicted == 0:
+                st.success(label)
+            else:
+                st.warning(label)
+        for c in claims:
+            if c.get("kind") == "absence":
+                if c["supported"]:
+                    st.markdown(f"ℹ️ {c['claim']}  _(not mentioned in the retrieved passages)_")
+                else:
+                    refs = ", ".join(str(i) for i in c["chunks"])
+                    note = f"contradicted by source {refs}" if refs else "contradicted by the sources"
+                    st.markdown(f"⚠️ {c['claim']}  _({note})_")
+            elif c["supported"]:
                 refs = ", ".join(str(i) for i in c["chunks"])
                 st.markdown(f"✅ {c['claim']}  _(source {refs})_")
             else:
                 st.markdown(f"⚠️ {c['claim']}  _(not found in the sources)_")
+        if verification.get("absence_claims"):
+            st.caption("Statements that something is missing can only be checked against the retrieved passages, not the whole document.")
     elif verification and verification.get("status") == "failed":
         st.caption("Verification was unavailable for this answer.")
 

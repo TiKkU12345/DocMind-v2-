@@ -57,6 +57,7 @@ What changed from v1:
 ## Verifier caveats
 
 - It is an LLM judging an LLM, so it can be wrong in both directions. It is a signal, not ground truth. Spot-check it by hand before quoting any number from it.
+- "X is not mentioned" claims are checked separately and are not part of the faithfulness score. They can only be checked against the retrieved passages, not the whole document.
 - It doubles the model calls per question (more latency, more Groq quota).
 
 ## Known limits
